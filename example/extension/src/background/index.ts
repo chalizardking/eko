@@ -17,6 +17,8 @@ import {
 import { initAgentServices } from "./agent";
 import WriteFileAgent from "./agent/file-agent";
 import { BrowserAgent } from "@eko-ai/eko-extension";
+import ClaudeFlowAgent from "./agent/claude-flow-agent";
+import { ExtensionA2aClient } from "./a2a-client";
 
 var chatAgent: ChatAgent | null = null;
 const callbackIdMap = new Map<string, Function>();
@@ -180,6 +182,14 @@ async function loadLLMs(): Promise<LLMs> {
         baseURL: llmConfig.options.baseURL,
       },
     },
+    claude: {
+      provider: llmConfig.llm as any,
+      model: llmConfig.modelName,
+      apiKey: llmConfig.apiKey,
+      config: {
+        baseURL: llmConfig.options.baseURL,
+      },
+    },
   };
 
   chrome.storage.onChanged.addListener(async (changes, areaName) => {
@@ -190,6 +200,10 @@ async function loadLLMs(): Promise<LLMs> {
         llms.default.model = newConfig.modelName;
         llms.default.apiKey = newConfig.apiKey;
         llms.default.config.baseURL = newConfig.options.baseURL;
+        llms.claude.provider = newConfig.llm as any;
+        llms.claude.model = newConfig.modelName;
+        llms.claude.apiKey = newConfig.apiKey;
+        llms.claude.config.baseURL = newConfig.options.baseURL;
         console.log("LLM config updated");
       }
     }
@@ -201,12 +215,17 @@ async function loadLLMs(): Promise<LLMs> {
 async function init(): Promise<ChatAgent | void> {
   initAgentServices();
 
+  config.mode = "expert";
+  config.agentParallel = true;
+
   const llms = await loadLLMs();
-  const agents = [new BrowserAgent(), new WriteFileAgent()];
+  const agents = [new BrowserAgent(), new WriteFileAgent(), new ClaudeFlowAgent()];
+  const a2aClient = new ExtensionA2aClient();
+
   // agents.forEach((agent) =>
   //   agent.Tools.forEach((tool) => wrapToolInputSchema(agent, tool))
   // );
-  chatAgent = new ChatAgent({ llms, agents });
+  chatAgent = new ChatAgent({ llms, agents, a2aClient });
   chatAgent.initMessages().catch((e) => {
     printLog("init messages error: " + e, "error");
   });

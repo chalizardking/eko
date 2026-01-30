@@ -48,6 +48,8 @@ export {
   BaseBrowserScreenAgent,
 } from "./agent";
 
+export type { IA2aClient } from "./agent/a2a";
+
 export {
   ForeachTaskTool,
   WatchTriggerTool,
